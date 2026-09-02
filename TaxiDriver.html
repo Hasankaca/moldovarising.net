@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Şoför Takip</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #1a1d24;
+    --card-hover: #21252e;
+    --border: #2a2e38;
+    --text: #eef0f3;
+    --text-dim: #9aa1ad;
+    --accent: #f2b705;
+    --accent-dim: #7a6304;
+    --green: #3ecf8e;
+    --red: #ef6262;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 80px;
+  }
+  header {
+    padding: 20px 16px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 20px; margin: 0 0 12px; font-weight: 700; }
+  .tabs { display: flex; gap: 8px; }
+  .tab {
+    flex: 1; text-align: center; padding: 10px 0; border-radius: 10px;
+    background: var(--card); color: var(--text-dim); font-size: 14px;
+    font-weight: 600; cursor: pointer; border: 1px solid var(--border);
+  }
+  .tab.active { background: var(--accent); color: #1a1400; border-color: var(--accent); }
+  main { padding: 16px; max-width: 480px; margin: 0 auto; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 14px;
+  }
+  .card h2 {
+    font-size: 15px; margin: 0 0 12px; color: var(--text-dim);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  label { display: block; font-size: 13px; color: var(--text-dim); margin: 10px 0 4px; }
+  input, select {
+    width: 100%; padding: 11px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: #12151a; color: var(--text); font-size: 15px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Trip cards */
+  .trip {
+    background: var(--card-hover);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .trip-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .trip-num { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .trip-del {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 13px; cursor: pointer;
+  }
+  .leg { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 6px; }
+  .leg-label { font-size: 11px; color: var(--text-dim); margin-bottom: 3px; }
+  .leg input { padding: 9px 10px; font-size: 14px; }
+  .trip-dist { font-size: 12px; color: var(--text-dim); text-align: right; margin-top: 2px; }
+
+  .expense-row {
+    display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px;
+    margin-top: 8px; align-items: center;
+  }
+  .expense-row input, .expense-row select { margin: 0; }
+  .icon-btn {
+    background: var(--card-hover); border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: 8px; width: 40px; height: 40px; font-size: 18px; cursor: pointer;
+  }
+  .add-btn {
+    margin-top: 4px; width: 100%; padding: 10px; border-radius: 10px;
+    border: 1px dashed var(--border); background: transparent;
+    color: var(--accent); font-size: 14px; cursor: pointer; font-weight: 600;
+  }
+  .primary-btn {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: var(--accent); color: #1a1400; font-size: 16px; font-weight: 700;
+    cursor: pointer; margin-top: 6px;
+  }
+  .primary-btn:active { opacity: 0.85; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--card-hover); border-radius: 10px; padding: 12px; }
+  .stat .label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+  .stat .value { font-size: 20px; font-weight: 700; }
+  .stat .value.green { color: var(--green); }
+  .stat .value.red { color: var(--red); }
+
+  .period-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .period-tab {
+    flex: 1; text-align: center; padding: 8px 0; border-radius: 8px;
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 13px; cursor: pointer;
+  }
+  .period-tab.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+  .entry {
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .entry:last-child { border-bottom: none; }
+  .entry-top { display: flex; justify-content: space-between; align-items: center; }
+  .entry .date { font-weight: 600; font-size: 14px; }
+  .entry .meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .entry .right { text-align: right; }
+  .entry .net { font-weight: 700; font-size: 14px; }
+  .entry .net.green { color: var(--green); }
+  .entry .net.red { color: var(--red); }
+  .entry .del { background: none; border: none; color: var(--text-dim); font-size: 13px; margin-left: 10px; cursor: pointer; }
+  .trip-mini {
+    font-size: 12px; color: var(--text-dim); padding: 6px 0 0 0;
+    border-top: 1px dashed var(--border); margin-top: 8px;
+  }
+  .trip-mini div { padding: 2px 0; }
+  .empty { text-align: center; color: var(--text-dim); font-size: 14px; padding: 30px 0; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--green); color: #06251a; padding: 10px 18px; border-radius: 30px;
+    font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h1 id="t-appTitle" style="margin:0;">🚕 Şoför Takip</h1>
+    <select id="lang-select" style="width:auto; padding:6px 8px; font-size:13px;">
+      <option value="tr">TR</option>
+      <option value="en">EN</option>
+      <option value="ru">RU</option>
+      <option value="ro">RO</option>
+      <option value="es">ES</option>
+      <option value="de">DE</option>
+      <option value="fr">FR</option>
+    </select>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-screen="entry" id="t-tabEntry">Bugün</div>
+    <div class="tab" data-screen="summary" id="t-tabSummary">Özet</div>
+    <div class="tab" data-screen="history" id="t-tabHistory">Geçmiş</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ENTRY SCREEN -->
+  <div class="screen active" id="entry">
+    <div class="card">
+      <h2 id="t-dateHeader">Tarih</h2>
+      <input type="date" id="f-date">
+    </div>
+
+    <div class="card">
+      <h2 id="t-dayHeader">Gün</h2>
+      <div class="row2">
+        <div>
+          <label id="t-dayStartLabel">Başlangıç km</label>
+          <input type="number" min="0" id="f-daystart-km" placeholder="örn. 45000">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="add-btn" id="start-day-btn" style="margin:0; color: var(--green); border-color: var(--green);">▶ <span id="t-startDay">Güne Başla</span></button>
+        </div>
+      </div>
+      <div class="trip-dist" id="day-start-display" style="text-align:left; margin-top:4px;"></div>
+
+      <div class="row2" style="margin-top:14px;">
+        <div>
+          <label id="t-dayEndLabel">Bitiş km</label>
+          <input type="number" min="0" id="f-dayend-km" placeholder="örn. 45180">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="add-btn" id="end-day-btn" style="margin:0; color: var(--red); border-color: var(--red);">■ <span id="t-endDay">Günü Bitir</span></button>
+        </div>
+      </div>
+      <div class="trip-dist" id="day-end-display" style="text-align:left; margin-top:4px;"></div>
+      <div class="trip-dist" id="bos-km-preview" style="text-align:left; margin-top:6px;"></div>
+    </div>
+
+    <div class="card">
+      <h2 id="t-tripsHeader">Yolcular</h2>
+      <div id="trip-list"></div>
+      <div id="trip-action"></div>
+    </div>
+
+    <div class="card">
+      <h2 id="t-workHeader">Çalışma</h2>
+      <div class="row2">
+        <div>
+          <label id="t-hoursLabel">Çalışılan saat</label>
+          <input type="number" step="0.5" min="0" id="f-hours" placeholder="örn. 9">
+        </div>
+        <div>
+          <label id="t-incomeAutoLabel">Gelir (otomatik)</label>
+          <input type="text" id="f-income-display" disabled value="₺0">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 id="t-expensesHeader">Masraflar</h2>
+      <div id="expense-list"></div>
+      <button class="add-btn" id="add-expense">+ <span id="t-addExpense">Masraf ekle</span></button>
+    </div>
+
+    <div class="card">
+      <h2 id="t-noteHeader">Not</h2>
+      <input type="text" id="f-note" placeholder="serbest not (opsiyonel)">
+    </div>
+
+    <button class="primary-btn" id="save-entry"><span id="t-saveBtn">Kaydet</span></button>
+  </div>
+
+  <!-- SUMMARY SCREEN -->
+  <div class="screen" id="summary">
+    <div class="period-tabs">
+      <div class="period-tab active" data-period="week" id="t-periodWeek">Bu hafta</div>
+      <div class="period-tab" data-period="month" id="t-periodMonth">Bu ay</div>
+      <div class="period-tab" data-period="all" id="t-periodAll">Tümü</div>
+    </div>
+    <div class="card">
+      <div class="stat-grid">
+        <div class="stat"><div class="label" id="t-statHours">Toplam saat</div><div class="value" id="s-hours">0</div></div>
+        <div class="stat"><div class="label" id="t-statCustomers">Toplam müşteri</div><div class="value" id="s-customers">0</div></div>
+        <div class="stat"><div class="label" id="t-statDoluKm">Dolu km</div><div class="value" id="s-km-dolu">0</div></div>
+        <div class="stat"><div class="label" id="t-statBosKm">Boş km</div><div class="value red" id="s-km-bos">0</div></div>
+        <div class="stat"><div class="label" id="t-statTotalKm">Toplam km</div><div class="value" id="s-km">0</div></div>
+        <div class="stat"><div class="label" id="t-statDays">Gün sayısı</div><div class="value" id="s-days">0</div></div>
+        <div class="stat"><div class="label" id="t-statIncome">Toplam gelir</div><div class="value green" id="s-income">₺0</div></div>
+        <div class="stat"><div class="label" id="t-statExpense">Toplam masraf</div><div class="value red" id="s-expense">₺0</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2 id="t-netHeader">Net</h2>
+      <div class="stat" style="grid-column: span 2;">
+        <div class="label" id="t-netSubLabel">Gelir − Masraf</div>
+        <div class="value" id="s-net">₺0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY SCREEN -->
+  <div class="screen" id="history">
+    <div class="card" id="history-list">
+      <div class="empty" id="t-emptyHistory">Henüz kayıt yok</div>
+    </div>
+  </div>
+
+  <footer style="text-align:center; padding: 24px 16px 8px; color: var(--text-dim); font-size: 12px; border-top: 1px solid var(--border); margin-top: 20px;">
+    <div>Şoför Takip · v1.0</div>
+    <div style="margin-top: 4px;">Developer: Hasan KAÇA</div>
+  </footer>
+
+</main>
+
+<div class="toast" id="toast">Kaydedildi ✓</div>
+
+<script>
+const STORAGE_KEY = 'sofor_takip_entries_v2';
+const LANG_KEY = 'sofor_takip_lang';
+let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let trips = [];       // current day's trips being entered (each has status: 'active' | 'done')
+let expenseRows = [];
+let dayStartTime = null;  // Date object, set when "Güne Başla" pressed
+let dayEndTime = null;    // Date object, set when "Günü Bitir" pressed
+
+// ---- i18n ----
+const STRINGS = {
+  tr: {
+    appTitle: '🚕 Şoför Takip', tabEntry: 'Bugün', tabSummary: 'Özet', tabHistory: 'Geçmiş',
+    dateHeader: 'Tarih', tripsHeader: 'Yolcular', addTrip: 'Yolcu ekle', noTrips: 'Henüz yolcu eklenmedi',
+    tripLabel: 'Yolcu', delBtn: 'Sil', pickupLoc: 'Alış noktası', pickupKm: 'Alış km',
+    dropoffLoc: 'Bırakış noktası', dropoffKm: 'Bırakış km', pickupPh: 'örn. Merkez', dropoffPh: 'örn. Havalimanı',
+    pickupTimeLabel: 'Alış saati', dropoffTimeLabel: 'Bırakış saati',
+    workHeader: 'Çalışma', hoursLabel: 'Çalışılan saat', incomeLabel: 'Gelir (₺ / opsiyonel)',
+    kmHeader: 'Kilometre (gün başı / sonu)', dayStartLabel: 'Sabah başlangıç km', dayEndLabel: 'Akşam bitiş km',
+    bosKmPreview: 'Boş km (tahmini)', expensesHeader: 'Masraflar', addExpense: 'Masraf ekle',
+    noteHeader: 'Not', notePh: 'serbest not (opsiyonel)', saveBtn: 'Kaydet', toastSaved: 'Kaydedildi ✓',
+    periodWeek: 'Bu hafta', periodMonth: 'Bu ay', periodAll: 'Tümü',
+    statHours: 'Toplam saat', statCustomers: 'Toplam müşteri', statDoluKm: 'Dolu km', statBosKm: 'Boş km',
+    statTotalKm: 'Toplam km', statDays: 'Gün sayısı', statIncome: 'Toplam gelir', statExpense: 'Toplam masraf',
+    netHeader: 'Net', netSubLabel: 'Gelir − Masraf', emptyHistory: 'Henüz kayıt yok',
+    confirmDelete: 'Bu kaydı silmek istediğine emin misin?', bosKmHistory: 'Boş km',
+    catFuel: 'Yakıt', catMaint: 'Bakım', catFine: 'Ceza', catOther: 'Diğer',
+    pleaseSelectDate: 'Lütfen tarih seç', locale: 'tr-TR',
+    hUnit: 'sa', custShort: 'müşteri', doluShort: 'dolu', bosShort: 'boş',
+    dayHeader: 'Gün', startDay: 'Güne Başla', endDay: 'Günü Bitir', pickupBtn: 'Müşteri Al', dropoffBtn: 'Yolcu Bırak',
+    paymentLabel: 'Ödeme (₺)', paymentPh: 'örn. 150', incomeAutoLabel: 'Gelir (otomatik)',
+    needDropoffKm: 'Lütfen bırakış km gir', activeLabel: 'Devam ediyor'
+  },
+  en: {
+    appTitle: '🚕 Driver Tracker', tabEntry: 'Today', tabSummary: 'Summary', tabHistory: 'History',
+    dateHeader: 'Date', tripsHeader: 'Trips', addTrip: 'Add trip', noTrips: 'No trips added yet',
+    tripLabel: 'Trip', delBtn: 'Delete', pickupLoc: 'Pickup location', pickupKm: 'Pickup km',
+    dropoffLoc: 'Dropoff location', dropoffKm: 'Dropoff km', pickupPh: 'e.g. Downtown', dropoffPh: 'e.g. Airport',
+    pickupTimeLabel: 'Pickup time', dropoffTimeLabel: 'Dropoff time',
+    workHeader: 'Work', hoursLabel: 'Hours worked', incomeLabel: 'Income ($ / optional)',
+    kmHeader: 'Odometer (start / end of day)', dayStartLabel: 'Morning start km', dayEndLabel: 'Evening end km',
+    bosKmPreview: 'Empty km (estimate)', expensesHeader: 'Expenses', addExpense: 'Add expense',
+    noteHeader: 'Note', notePh: 'free note (optional)', saveBtn: 'Save', toastSaved: 'Saved ✓',
+    periodWeek: 'This week', periodMonth: 'This month', periodAll: 'All time',
+    statHours: 'Total hours', statCustomers: 'Total customers', statDoluKm: 'Loaded km', statBosKm: 'Empty km',
+    statTotalKm: 'Total km', statDays: 'Days', statIncome: 'Total income', statExpense: 'Total expenses',
+    netHeader: 'Net', netSubLabel: 'Income − Expenses', emptyHistory: 'No entries yet',
+    confirmDelete: 'Are you sure you want to delete this entry?', bosKmHistory: 'Empty km',
+    catFuel: 'Fuel', catMaint: 'Maintenance', catFine: 'Fine', catOther: 'Other',
+    pleaseSelectDate: 'Please select a date', locale: 'en-US',
+    hUnit: 'h', custShort: 'customers', doluShort: 'loaded', bosShort: 'empty',
+    dayHeader: 'Day', startDay: 'Start Day', endDay: 'End Day', pickupBtn: 'Pick Up Customer', dropoffBtn: 'Drop Off',
+    paymentLabel: 'Payment ($)', paymentPh: 'e.g. 150', incomeAutoLabel: 'Income (auto)',
+    needDropoffKm: 'Please enter dropoff km', activeLabel: 'In progress'
+  },
+  ru: {
+    appTitle: '🚕 Учёт Водителя', tabEntry: 'Сегодня', tabSummary: 'Итоги', tabHistory: 'История',
+    dateHeader: 'Дата', tripsHeader: 'Поездки', addTrip: 'Добавить поездку', noTrips: 'Поездок пока нет',
+    tripLabel: 'Поездка', delBtn: 'Удалить', pickupLoc: 'Место посадки', pickupKm: 'Км посадки',
+    dropoffLoc: 'Место высадки', dropoffKm: 'Км высадки', pickupPh: 'напр. Центр', dropoffPh: 'напр. Аэропорт',
+    pickupTimeLabel: 'Время посадки', dropoffTimeLabel: 'Время высадки',
+    workHeader: 'Работа', hoursLabel: 'Отработано часов', incomeLabel: 'Доход (опционально)',
+    kmHeader: 'Одометр (начало / конец дня)', dayStartLabel: 'Км утром', dayEndLabel: 'Км вечером',
+    bosKmPreview: 'Холостой км (оценка)', expensesHeader: 'Расходы', addExpense: 'Добавить расход',
+    noteHeader: 'Заметка', notePh: 'заметка (опционально)', saveBtn: 'Сохранить', toastSaved: 'Сохранено ✓',
+    periodWeek: 'Эта неделя', periodMonth: 'Этот месяц', periodAll: 'Всё время',
+    statHours: 'Всего часов', statCustomers: 'Всего клиентов', statDoluKm: 'Км с пассажиром', statBosKm: 'Холостой км',
+    statTotalKm: 'Всего км', statDays: 'Дней', statIncome: 'Всего доход', statExpense: 'Всего расходы',
+    netHeader: 'Итог', netSubLabel: 'Доход − Расходы', emptyHistory: 'Записей пока нет',
+    confirmDelete: 'Удалить эту запись?', bosKmHistory: 'Холостой км',
+    catFuel: 'Топливо', catMaint: 'Обслуживание', catFine: 'Штраф', catOther: 'Другое',
+    pleaseSelectDate: 'Пожалуйста, выберите дату', locale: 'ru-RU',
+    hUnit: 'ч', custShort: 'клиентов', doluShort: 'загруж.', bosShort: 'холост.',
+    dayHeader: 'День', startDay: 'Начать день', endDay: 'Закончить день', pickupBtn: 'Забрать клиента', dropoffBtn: 'Высадить',
+    paymentLabel: 'Оплата', paymentPh: 'напр. 150', incomeAutoLabel: 'Доход (авто)',
+    needDropoffKm: 'Введите км высадки', activeLabel: 'В процессе'
+  },
+  ro: {
+    appTitle: '🚕 Evidență Șofer', tabEntry: 'Astăzi', tabSummary: 'Rezumat', tabHistory: 'Istoric',
+    dateHeader: 'Dată', tripsHeader: 'Curse', addTrip: 'Adaugă cursă', noTrips: 'Nicio cursă adăugată încă',
+    tripLabel: 'Cursă', delBtn: 'Șterge', pickupLoc: 'Loc de preluare', pickupKm: 'Km preluare',
+    dropoffLoc: 'Loc de destinație', dropoffKm: 'Km destinație', pickupPh: 'ex. Centru', dropoffPh: 'ex. Aeroport',
+    pickupTimeLabel: 'Ora preluării', dropoffTimeLabel: 'Ora destinației',
+    workHeader: 'Muncă', hoursLabel: 'Ore lucrate', incomeLabel: 'Venit (opțional)',
+    kmHeader: 'Kilometraj (început / sfârșit zi)', dayStartLabel: 'Km dimineața', dayEndLabel: 'Km seara',
+    bosKmPreview: 'Km goi (estimat)', expensesHeader: 'Cheltuieli', addExpense: 'Adaugă cheltuială',
+    noteHeader: 'Notă', notePh: 'notă liberă (opțional)', saveBtn: 'Salvează', toastSaved: 'Salvat ✓',
+    periodWeek: 'Săptămâna aceasta', periodMonth: 'Luna aceasta', periodAll: 'Tot timpul',
+    statHours: 'Total ore', statCustomers: 'Total clienți', statDoluKm: 'Km cu client', statBosKm: 'Km goi',
+    statTotalKm: 'Total km', statDays: 'Zile', statIncome: 'Venit total', statExpense: 'Cheltuieli totale',
+    netHeader: 'Net', netSubLabel: 'Venit − Cheltuieli', emptyHistory: 'Nicio înregistrare încă',
+    confirmDelete: 'Ești sigur că vrei să ștergi această înregistrare?', bosKmHistory: 'Km goi',
+    catFuel: 'Combustibil', catMaint: 'Întreținere', catFine: 'Amendă', catOther: 'Altele',
+    pleaseSelectDate: 'Te rog selectează o dată', locale: 'ro-RO',
+    hUnit: 'h', custShort: 'clienți', doluShort: 'încărcat', bosShort: 'gol',
+    dayHeader: 'Zi', startDay: 'Începe ziua', endDay: 'Termină ziua', pickupBtn: 'Preia client', dropoffBtn: 'Lasă client',
+    paymentLabel: 'Plată', paymentPh: 'ex. 150', incomeAutoLabel: 'Venit (auto)',
+    needDropoffKm: 'Introdu km destinație', activeLabel: 'În desfășurare'
+  },
+  es: {
+    appTitle: '🚕 Registro del Conductor', tabEntry: 'Hoy', tabSummary: 'Resumen', tabHistory: 'Historial',
+    dateHeader: 'Fecha', tripsHeader: 'Viajes', addTrip: 'Añadir viaje', noTrips: 'Aún no se han añadido viajes',
+    tripLabel: 'Viaje', delBtn: 'Eliminar', pickupLoc: 'Lugar de recogida', pickupKm: 'Km de recogida',
+    dropoffLoc: 'Lugar de destino', dropoffKm: 'Km de destino', pickupPh: 'ej. Centro', dropoffPh: 'ej. Aeropuerto',
+    pickupTimeLabel: 'Hora de recogida', dropoffTimeLabel: 'Hora de destino',
+    workHeader: 'Trabajo', hoursLabel: 'Horas trabajadas', incomeLabel: 'Ingresos (opcional)',
+    kmHeader: 'Kilometraje (inicio / fin del día)', dayStartLabel: 'Km por la mañana', dayEndLabel: 'Km por la tarde',
+    bosKmPreview: 'Km vacíos (estimado)', expensesHeader: 'Gastos', addExpense: 'Añadir gasto',
+    noteHeader: 'Nota', notePh: 'nota libre (opcional)', saveBtn: 'Guardar', toastSaved: 'Guardado ✓',
+    periodWeek: 'Esta semana', periodMonth: 'Este mes', periodAll: 'Todo el tiempo',
+    statHours: 'Horas totales', statCustomers: 'Clientes totales', statDoluKm: 'Km con cliente', statBosKm: 'Km vacíos',
+    statTotalKm: 'Km totales', statDays: 'Días', statIncome: 'Ingresos totales', statExpense: 'Gastos totales',
+    netHeader: 'Neto', netSubLabel: 'Ingresos − Gastos', emptyHistory: 'Aún no hay registros',
+    confirmDelete: '¿Seguro que quieres eliminar este registro?', bosKmHistory: 'Km vacíos',
+    catFuel: 'Combustible', catMaint: 'Mantenimiento', catFine: 'Multa', catOther: 'Otro',
+    pleaseSelectDate: 'Por favor selecciona una fecha', locale: 'es-ES',
+    hUnit: 'h', custShort: 'clientes', doluShort: 'con cliente', bosShort: 'vacío',
+    dayHeader: 'Día', startDay: 'Iniciar día', endDay: 'Terminar día', pickupBtn: 'Recoger cliente', dropoffBtn: 'Dejar cliente',
+    paymentLabel: 'Pago', paymentPh: 'ej. 150', incomeAutoLabel: 'Ingresos (auto)',
+    needDropoffKm: 'Introduce el km de destino', activeLabel: 'En curso'
+  },
+  de: {
+    appTitle: '🚕 Fahrer-Tracker', tabEntry: 'Heute', tabSummary: 'Übersicht', tabHistory: 'Verlauf',
+    dateHeader: 'Datum', tripsHeader: 'Fahrten', addTrip: 'Fahrt hinzufügen', noTrips: 'Noch keine Fahrten hinzugefügt',
+    tripLabel: 'Fahrt', delBtn: 'Löschen', pickupLoc: 'Abholort', pickupKm: 'Abhol-km',
+    dropoffLoc: 'Zielort', dropoffKm: 'Ziel-km', pickupPh: 'z.B. Zentrum', dropoffPh: 'z.B. Flughafen',
+    pickupTimeLabel: 'Abholzeit', dropoffTimeLabel: 'Zielzeit',
+    workHeader: 'Arbeit', hoursLabel: 'Gearbeitete Stunden', incomeLabel: 'Einkommen (optional)',
+    kmHeader: 'Kilometerstand (Tagesanfang / -ende)', dayStartLabel: 'Km morgens', dayEndLabel: 'Km abends',
+    bosKmPreview: 'Leerkilometer (geschätzt)', expensesHeader: 'Ausgaben', addExpense: 'Ausgabe hinzufügen',
+    noteHeader: 'Notiz', notePh: 'freie Notiz (optional)', saveBtn: 'Speichern', toastSaved: 'Gespeichert ✓',
+    periodWeek: 'Diese Woche', periodMonth: 'Dieser Monat', periodAll: 'Gesamt',
+    statHours: 'Stunden gesamt', statCustomers: 'Kunden gesamt', statDoluKm: 'Beladene km', statBosKm: 'Leerkilometer',
+    statTotalKm: 'Km gesamt', statDays: 'Tage', statIncome: 'Einkommen gesamt', statExpense: 'Ausgaben gesamt',
+    netHeader: 'Netto', netSubLabel: 'Einkommen − Ausgaben', emptyHistory: 'Noch keine Einträge',
+    confirmDelete: 'Diesen Eintrag wirklich löschen?', bosKmHistory: 'Leerkilometer',
+    catFuel: 'Kraftstoff', catMaint: 'Wartung', catFine: 'Strafe', catOther: 'Sonstiges',
+    pleaseSelectDate: 'Bitte ein Datum auswählen', locale: 'de-DE',
+    hUnit: 'Std', custShort: 'Kunden', doluShort: 'beladen', bosShort: 'leer',
+    dayHeader: 'Tag', startDay: 'Tag starten', endDay: 'Tag beenden', pickupBtn: 'Kunde abholen', dropoffBtn: 'Absetzen',
+    paymentLabel: 'Zahlung', paymentPh: 'z.B. 150', incomeAutoLabel: 'Einkommen (auto)',
+    needDropoffKm: 'Bitte Ziel-km eingeben', activeLabel: 'Läuft'
+  },
+  fr: {
+    appTitle: '🚕 Suivi Chauffeur', tabEntry: "Aujourd'hui", tabSummary: 'Résumé', tabHistory: 'Historique',
+    dateHeader: 'Date', tripsHeader: 'Courses', addTrip: 'Ajouter une course', noTrips: 'Aucune course ajoutée pour le moment',
+    tripLabel: 'Course', delBtn: 'Supprimer', pickupLoc: 'Lieu de prise en charge', pickupKm: 'Km de prise en charge',
+    dropoffLoc: 'Lieu de dépose', dropoffKm: 'Km de dépose', pickupPh: 'ex. Centre-ville', dropoffPh: 'ex. Aéroport',
+    pickupTimeLabel: 'Heure de prise en charge', dropoffTimeLabel: 'Heure de dépose',
+    workHeader: 'Travail', hoursLabel: 'Heures travaillées', incomeLabel: 'Revenu (optionnel)',
+    kmHeader: 'Kilométrage (début / fin de journée)', dayStartLabel: 'Km le matin', dayEndLabel: 'Km le soir',
+    bosKmPreview: 'Km à vide (estimé)', expensesHeader: 'Dépenses', addExpense: 'Ajouter une dépense',
+    noteHeader: 'Note', notePh: 'note libre (optionnel)', saveBtn: 'Enregistrer', toastSaved: 'Enregistré ✓',
+    periodWeek: 'Cette semaine', periodMonth: 'Ce mois-ci', periodAll: 'Tout',
+    statHours: 'Heures totales', statCustomers: 'Clients totaux', statDoluKm: 'Km en charge', statBosKm: 'Km à vide',
+    statTotalKm: 'Km totaux', statDays: 'Jours', statIncome: 'Revenu total', statExpense: 'Dépenses totales',
+    netHeader: 'Net', netSubLabel: 'Revenu − Dépenses', emptyHistory: 'Aucun enregistrement pour le moment',
+    confirmDelete: 'Voulez-vous vraiment supprimer cet enregistrement ?', bosKmHistory: 'Km à vide',
+    catFuel: 'Carburant', catMaint: 'Entretien', catFine: 'Amende', catOther: 'Autre',
+    pleaseSelectDate: 'Veuillez sélectionner une date', locale: 'fr-FR',
+    hUnit: 'h', custShort: 'clients', doluShort: 'en charge', bosShort: 'à vide',
+    dayHeader: 'Journée', startDay: 'Démarrer la journée', endDay: 'Terminer la journée', pickupBtn: 'Prendre le client', dropoffBtn: 'Déposer',
+    paymentLabel: 'Paiement', paymentPh: 'ex. 150', incomeAutoLabel: 'Revenu (auto)',
+    needDropoffKm: 'Veuillez entrer le km de dépose', activeLabel: 'En cours'
+  }
+};
+
+function detectLang() {
+  const saved = localStorage.getItem(LANG_KEY);
+  if (saved && STRINGS[saved]) return saved;
+  const browserLang = (navigator.language || 'tr').split('-')[0];
+  return STRINGS[browserLang] ? browserLang : 'tr';
+}
+
+let currentLang = detectLang();
+function t(key) { return (STRINGS[currentLang] && STRINGS[currentLang][key]) || STRINGS.tr[key] || key; }
+
+function applyTranslations() {
+  document.querySelectorAll('[id^="t-"]').forEach(el => {
+    const key = el.id.slice(2);
+    if (STRINGS.tr[key] !== undefined) el.textContent = t(key);
+  });
+  document.getElementById('f-note').placeholder = t('notePh');
+  document.getElementById('toast').textContent = t('toastSaved');
+  document.getElementById('lang-select').value = currentLang;
+  renderDayCard();
+  renderTrips();
+  renderExpenseRows();
+  renderSummary();
+  renderHistory();
+}
+
+document.getElementById('lang-select').addEventListener('change', (e) => {
+  currentLang = e.target.value;
+  localStorage.setItem(LANG_KEY, currentLang);
+  applyTranslations();
+});
+
+function saveToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+// ---- Tab navigation ----
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.screen).classList.add('active');
+    if (tab.dataset.screen === 'summary') renderSummary();
+    if (tab.dataset.screen === 'history') renderHistory();
+  });
+});
+
+document.getElementById('f-date').valueAsDate = new Date();
+
+// ---- Day start / end ----
+function formatTime(d) {
+  if (!d) return '';
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function toDateInputValue(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function toTimeInputValue(d) {
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+// Apply a corrected HH:MM to an existing Date, keeping its date part.
+// If the corrected time is earlier than the reference date's time in a way
+// that implies it belongs to the next calendar day (e.g. shift crossing
+// midnight), roll the date forward by one day.
+function applyTimeCorrection(oldDate, hhmm, rollIfEarlierThan) {
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date(oldDate);
+  d.setHours(h, m, 0, 0);
+  if (rollIfEarlierThan && d < rollIfEarlierThan) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+document.getElementById('start-day-btn').addEventListener('click', () => {
+  if (dayStartTime) {
+    dayStartTime = null;
+    document.getElementById('f-date').disabled = false;
+  } else {
+    dayStartTime = new Date();
+    // lock the day's date to the shift's actual start date, so a shift that
+    // crosses midnight (e.g. 12:00 → 03:00 next day) still counts as one day
+    document.getElementById('f-date').value = toDateInputValue(dayStartTime);
+    document.getElementById('f-date').disabled = true;
+  }
+  renderDayCard();
+  updateBosKmPreview();
+});
+document.getElementById('end-day-btn').addEventListener('click', () => {
+  if (dayEndTime) { dayEndTime = null; } else { dayEndTime = new Date(); }
+  renderDayCard();
+  updateBosKmPreview();
+});
+
+function renderDayCard() {
+  const startBtn = document.getElementById('start-day-btn');
+  const startDisplay = document.getElementById('day-start-display');
+  if (dayStartTime) {
+    startBtn.innerHTML = `✕ <span id="t-resetLabel">${t('delBtn')}</span>`;
+    startDisplay.innerHTML = `<input type="time" id="day-start-time-input" value="${toTimeInputValue(dayStartTime)}" style="width:auto; padding:4px 8px; font-size:13px; display:inline-block;">`;
+    document.getElementById('day-start-time-input').addEventListener('change', (e) => {
+      if (!e.target.value) return;
+      dayStartTime = applyTimeCorrection(dayStartTime, e.target.value);
+      renderDayCard();
+      updateBosKmPreview();
+    });
+  } else {
+    startBtn.innerHTML = `▶ <span id="t-startDay">${t('startDay')}</span>`;
+    startDisplay.textContent = '';
+  }
+  const endBtn = document.getElementById('end-day-btn');
+  const endDisplay = document.getElementById('day-end-display');
+  if (dayEndTime) {
+    endBtn.innerHTML = `✕ <span id="t-resetLabel2">${t('delBtn')}</span>`;
+    endDisplay.innerHTML = `<input type="time" id="day-end-time-input" value="${toTimeInputValue(dayEndTime)}" style="width:auto; padding:4px 8px; font-size:13px; display:inline-block;">`;
+    document.getElementById('day-end-time-input').addEventListener('change', (e) => {
+      if (!e.target.value) return;
+      dayEndTime = applyTimeCorrection(dayEndTime, e.target.value, dayStartTime);
+      renderDayCard();
+      updateBosKmPreview();
+    });
+  } else {
+    endBtn.innerHTML = `■ <span id="t-endDay">${t('endDay')}</span>`;
+    endDisplay.textContent = '';
+  }
+  updateHoursFromTimes();
+}
+
+function updateHoursFromTimes() {
+  if (dayStartTime && dayEndTime) {
+    const hrs = (dayEndTime - dayStartTime) / (1000 * 60 * 60);
+    if (hrs >= 0) {
+      document.getElementById('f-hours').value = hrs.toFixed(1);
+      document.getElementById('f-hours').disabled = true;
+      return;
+    }
+  }
+  document.getElementById('f-hours').disabled = false;
+}
+
+// ---- Trips (pickup → dropoff flow with timestamps) ----
+// pickupKm defaults to the last dropoff's km (or day-start km for the first trip).
+// If the driver types a higher pickup km, that gap counts as "boş" (empty/idle) km.
+function lastKnownKm() {
+  const lastDone = [...trips].reverse().find(tr => tr.status === 'done');
+  if (lastDone) return lastDone.dropoffKm;
+  const startKm = parseFloat(document.getElementById('f-daystart-km').value);
+  return isNaN(startKm) ? '' : startKm;
+}
+function lastKnownLoc() {
+  const lastDone = [...trips].reverse().find(tr => tr.status === 'done');
+  return lastDone ? lastDone.dropoffLoc : '';
+}
+
+function pickupCustomer() {
+  if (trips.some(tr => tr.status === 'active')) return; // one active trip at a time
+  const trip = {
+    id: Date.now() + Math.random(),
+    pickupLoc: lastKnownLoc(),
+    pickupKm: lastKnownKm(),
+    pickupTime: new Date(),
+    dropoffLoc: '',
+    dropoffKm: '',
+    dropoffTime: null,
+    payment: '',
+    status: 'active'
+  };
+  trips.push(trip);
+  renderTrips();
+  updateBosKmPreview();
+}
+
+function dropoffCustomer(tripId) {
+  const trip = trips.find(tr => tr.id == tripId);
+  if (!trip) return;
+  if (trip.dropoffKm === '' || trip.dropoffKm == null || isNaN(parseFloat(trip.dropoffKm))) {
+    alert(t('needDropoffKm'));
+    return;
+  }
+  trip.dropoffTime = new Date();
+  trip.status = 'done';
+  renderTrips();
+  updateBosKmPreview();
+}
+
+function renderTrips() {
+  const list = document.getElementById('trip-list');
+  const actionArea = document.getElementById('trip-action');
+  const doneTrips = trips.filter(tr => tr.status === 'done');
+  const activeTrip = trips.find(tr => tr.status === 'active');
+
+  if (trips.length === 0) {
+    list.innerHTML = `<div class="empty" style="padding:14px 0;">${t('noTrips')}</div>`;
+  } else {
+    list.innerHTML = '';
+    doneTrips.forEach((tr, i) => {
+      const pk = parseFloat(tr.pickupKm), dk = parseFloat(tr.dropoffKm);
+      const dist = (!isNaN(pk) && !isNaN(dk) && dk >= pk) ? (dk - pk).toFixed(1) + ' km' : '';
+      const div = document.createElement('div');
+      div.className = 'trip';
+      div.innerHTML = `
+        <div class="trip-head">
+          <span class="trip-num">${t('tripLabel')} ${i + 1}</span>
+          <button class="trip-del" data-id="${tr.id}">${t('delBtn')}</button>
+        </div>
+        <div class="leg">
+          <div>
+            <div class="leg-label">${t('pickupLoc')}</div>
+            <input type="text" class="t-pickupLoc" data-id="${tr.id}" value="${tr.pickupLoc}" placeholder="${t('pickupPh')}">
+          </div>
+          <div>
+            <div class="leg-label">${t('pickupKm')}</div>
+            <input type="number" class="t-pickupKm" data-id="${tr.id}" value="${tr.pickupKm}" placeholder="km">
+          </div>
+        </div>
+        <div class="leg">
+          <div>
+            <div class="leg-label">${t('pickupTimeLabel')}</div>
+            <input type="time" class="t-pickupTime" data-id="${tr.id}" value="${tr.pickupTime ? toTimeInputValue(tr.pickupTime) : ''}">
+          </div>
+          <div></div>
+        </div>
+        <div class="leg">
+          <div>
+            <div class="leg-label">${t('dropoffLoc')}</div>
+            <input type="text" class="t-dropoffLoc" data-id="${tr.id}" value="${tr.dropoffLoc}" placeholder="${t('dropoffPh')}">
+          </div>
+          <div>
+            <div class="leg-label">${t('dropoffKm')}</div>
+            <input type="number" class="t-dropoffKm" data-id="${tr.id}" value="${tr.dropoffKm}" placeholder="km">
+          </div>
+        </div>
+        <div class="leg">
+          <div>
+            <div class="leg-label">${t('dropoffTimeLabel')}</div>
+            <input type="time" class="t-dropoffTime" data-id="${tr.id}" value="${tr.dropoffTime ? toTimeInputValue(tr.dropoffTime) : ''}">
+          </div>
+          <div></div>
+        </div>
+        <div class="leg" style="grid-template-columns: 1fr;">
+          <div>
+            <div class="leg-label">${t('paymentLabel')}</div>
+            <input type="number" class="t-payment" data-id="${tr.id}" value="${tr.payment}" placeholder="${t('paymentPh')}">
+          </div>
+        </div>
+        ${dist ? `<div class="trip-dist">${dist}</div>` : ''}
+      `;
+      list.appendChild(div);
+    });
+
+    if (activeTrip) {
+      const div = document.createElement('div');
+      div.className = 'trip';
+      div.style.borderColor = 'var(--accent)';
+      div.innerHTML = `
+        <div class="trip-head">
+          <span class="trip-num" style="color: var(--accent);">${t('tripLabel')} ${doneTrips.length + 1} · ${t('activeLabel')}</span>
+        </div>
+        <div class="leg">
+          <div>
+            <div class="leg-label">${t('pickupLoc')}</div>
+            <input type="text" class="a-pickupLoc" value="${activeTrip.pickupLoc}" placeholder="${t('pickupPh')}">
+          </div>
+          <div>
+            <div class="leg-label">${t('pickupKm')}</div>
+            <input type="number" class="a-pickupKm" value="${activeTrip.pickupKm}" placeholder="km">
+          </div>
+        </div>
+        <div class="leg">
+          <div>
+            <div class="leg-label">${t('pickupTimeLabel')}</div>
+            <input type="time" class="a-pickupTime" value="${toTimeInputValue(activeTrip.pickupTime)}">
+          </div>
+          <div></div>
+        </div>
+        <div class="leg">
+          <div>
+            <div class="leg-label">${t('dropoffLoc')}</div>
+            <input type="text" class="a-dropoffLoc" value="${activeTrip.dropoffLoc}" placeholder="${t('dropoffPh')}">
+          </div>
+          <div>
+            <div class="leg-label">${t('dropoffKm')}</div>
+            <input type="number" class="a-dropoffKm" value="${activeTrip.dropoffKm}" placeholder="km">
+          </div>
+        </div>
+        <div class="leg" style="grid-template-columns: 1fr;">
+          <div>
+            <div class="leg-label">${t('paymentLabel')}</div>
+            <input type="number" class="a-payment" value="${activeTrip.payment}" placeholder="${t('paymentPh')}">
+          </div>
+        </div>
+        <button class="primary-btn" id="dropoff-btn" style="margin-top:10px; padding:10px;">■ ${t('dropoffBtn')}</button>
+      `;
+      list.appendChild(div);
+
+      div.querySelector('.a-pickupLoc').addEventListener('input', e => activeTrip.pickupLoc = e.target.value);
+      div.querySelector('.a-pickupKm').addEventListener('input', e => { activeTrip.pickupKm = e.target.value; updateBosKmPreview(); });
+      div.querySelector('.a-pickupTime').addEventListener('change', e => {
+        if (!e.target.value) return;
+        activeTrip.pickupTime = applyTimeCorrection(activeTrip.pickupTime, e.target.value);
+      });
+      div.querySelector('.a-dropoffLoc').addEventListener('input', e => activeTrip.dropoffLoc = e.target.value);
+      div.querySelector('.a-dropoffKm').addEventListener('input', e => { activeTrip.dropoffKm = e.target.value; updateBosKmPreview(); });
+      div.querySelector('.a-payment').addEventListener('input', e => activeTrip.payment = e.target.value);
+      div.querySelector('#dropoff-btn').addEventListener('click', () => dropoffCustomer(activeTrip.id));
+    }
+  }
+
+  list.querySelectorAll('.t-pickupTime').forEach(el => el.addEventListener('change', e => {
+    const trip = trips.find(tr => tr.id == e.target.dataset.id);
+    if (trip && e.target.value) trip.pickupTime = applyTimeCorrection(trip.pickupTime, e.target.value);
+  }));
+  list.querySelectorAll('.t-dropoffTime').forEach(el => el.addEventListener('change', e => {
+    const trip = trips.find(tr => tr.id == e.target.dataset.id);
+    if (trip && e.target.value) trip.dropoffTime = applyTimeCorrection(trip.dropoffTime, e.target.value, trip.pickupTime);
+  }));
+  list.querySelectorAll('.t-pickupLoc').forEach(el => el.addEventListener('input', e => updateTrip(e, 'pickupLoc')));
+  list.querySelectorAll('.t-pickupKm').forEach(el => el.addEventListener('input', e => updateTrip(e, 'pickupKm', true)));
+  list.querySelectorAll('.t-dropoffLoc').forEach(el => el.addEventListener('input', e => updateTrip(e, 'dropoffLoc')));
+  list.querySelectorAll('.t-dropoffKm').forEach(el => el.addEventListener('input', e => updateTrip(e, 'dropoffKm', true)));
+  list.querySelectorAll('.t-payment').forEach(el => el.addEventListener('input', e => updateTrip(e, 'payment')));
+  list.querySelectorAll('.trip-del').forEach(el => el.addEventListener('click', e => {
+    trips = trips.filter(tr => tr.id != e.target.dataset.id);
+    renderTrips();
+    updateBosKmPreview();
+  }));
+
+  // action area: only show "pick up" button when no trip is currently active
+  actionArea.innerHTML = '';
+  if (!activeTrip) {
+    const btn = document.createElement('button');
+    btn.className = 'primary-btn';
+    btn.style.marginTop = '4px';
+    btn.innerHTML = `▶ ${t('pickupBtn')}`;
+    btn.addEventListener('click', pickupCustomer);
+    actionArea.appendChild(btn);
+  }
+  updateIncomeDisplay();
+}
+
+function updateTrip(e, field, rerender) {
+  const trip = trips.find(tr => tr.id == e.target.dataset.id);
+  if (trip) trip[field] = e.target.value;
+  updateIncomeDisplay();
+  if (rerender) { renderTrips(); updateBosKmPreview(); } // refresh distance display
+}
+
+function updateIncomeDisplay() {
+  const total = trips.reduce((s, tr) => s + (parseFloat(tr.payment) || 0), 0);
+  document.getElementById('f-income-display').value = '₺' + total.toFixed(0);
+}
+
+// ---- Expenses ----
+// category is stored as a canonical key ('fuel'|'maint'|'fine'|'other') so it stays
+// consistent across language switches and is portable to a future backend.
+function addExpenseRow(category = 'fuel', amount = '') {
+  const id = Date.now() + Math.random();
+  expenseRows.push({ id, category, amount });
+  renderExpenseRows();
+}
+
+function categoryLabel(cat) {
+  return { fuel: t('catFuel'), maint: t('catMaint'), fine: t('catFine'), other: t('catOther') }[cat] || cat;
+}
+
+function renderExpenseRows() {
+  const list = document.getElementById('expense-list');
+  list.innerHTML = '';
+  expenseRows.forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'expense-row';
+    div.innerHTML = `
+      <select data-id="${row.id}" class="exp-cat">
+        <option value="fuel" ${row.category==='fuel'?'selected':''}>${t('catFuel')}</option>
+        <option value="maint" ${row.category==='maint'?'selected':''}>${t('catMaint')}</option>
+        <option value="fine" ${row.category==='fine'?'selected':''}>${t('catFine')}</option>
+        <option value="other" ${row.category==='other'?'selected':''}>${t('catOther')}</option>
+      </select>
+      <input type="number" min="0" placeholder="₺" class="exp-amt" data-id="${row.id}" value="${row.amount}">
+      <button class="icon-btn exp-del" data-id="${row.id}">✕</button>
+    `;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.exp-cat').forEach(el => el.addEventListener('change', e => {
+    const row = expenseRows.find(r => r.id == e.target.dataset.id);
+    if (row) row.category = e.target.value;
+  }));
+  list.querySelectorAll('.exp-amt').forEach(el => el.addEventListener('input', e => {
+    const row = expenseRows.find(r => r.id == e.target.dataset.id);
+    if (row) row.amount = e.target.value;
+  }));
+  list.querySelectorAll('.exp-del').forEach(el => el.addEventListener('click', e => {
+    expenseRows = expenseRows.filter(r => r.id != e.target.dataset.id);
+    renderExpenseRows();
+  }));
+}
+
+document.getElementById('add-expense').addEventListener('click', () => addExpenseRow());
+
+// ---- Save entry ----
+document.getElementById('save-entry').addEventListener('click', () => {
+  const date = document.getElementById('f-date').value;
+  if (!date) { alert(t('pleaseSelectDate')); return; }
+  if (trips.some(tr => tr.status === 'active')) { alert(t('needDropoffKm')); return; }
+
+  const cleanTrips = trips.map(tr => ({
+    pickupLoc: tr.pickupLoc,
+    pickupKm: parseFloat(tr.pickupKm) || 0,
+    pickupTime: tr.pickupTime ? tr.pickupTime.toISOString() : null,
+    dropoffLoc: tr.dropoffLoc,
+    dropoffKm: parseFloat(tr.dropoffKm) || 0,
+    dropoffTime: tr.dropoffTime ? tr.dropoffTime.toISOString() : null,
+    payment: parseFloat(tr.payment) || 0
+  }));
+
+  const entry = {
+    id: Date.now(),
+    date,
+    hours: parseFloat(document.getElementById('f-hours').value) || 0,
+    expenses: expenseRows.map(r => ({ category: r.category, amount: parseFloat(r.amount) || 0 })),
+    note: document.getElementById('f-note').value || '',
+    trips: cleanTrips,
+    dayStartKm: parseFloat(document.getElementById('f-daystart-km').value) || null,
+    dayEndKm: parseFloat(document.getElementById('f-dayend-km').value) || null,
+    dayStartTime: dayStartTime ? dayStartTime.toISOString() : null,
+    dayEndTime: dayEndTime ? dayEndTime.toISOString() : null
+  };
+
+  entries.push(entry);
+  saveToStorage();
+
+  // reset form
+  document.getElementById('f-hours').value = '';
+  document.getElementById('f-hours').disabled = false;
+  document.getElementById('f-note').value = '';
+  document.getElementById('f-daystart-km').value = '';
+  document.getElementById('f-dayend-km').value = '';
+  document.getElementById('f-date').disabled = false;
+  document.getElementById('f-date').valueAsDate = new Date();
+  trips = [];
+  expenseRows = [];
+  dayStartTime = null;
+  dayEndTime = null;
+  renderTrips();
+  renderExpenseRows();
+  renderDayCard();
+  updateBosKmPreview();
+
+  showToast();
+});
+
+function showToast() {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+// ---- Derived values ----
+function entryExpenseTotal(e) {
+  return e.expenses.reduce((sum, x) => sum + (x.amount || 0), 0);
+}
+function entryCustomerCount(e) {
+  return (e.trips || []).length;
+}
+function entryIncome(e) {
+  const tripSum = (e.trips || []).reduce((sum, t) => sum + (parseFloat(t.payment) || 0), 0);
+  if (tripSum > 0) return tripSum;
+  return e.income || 0; // fallback for entries saved before per-trip payments existed
+}
+// "Dolu km": distance actually carrying a customer (per trip, pickup→dropoff)
+function entryDoluKm(e) {
+  return (e.trips || []).reduce((sum, t) => {
+    const d = t.dropoffKm - t.pickupKm;
+    return sum + (d > 0 ? d : 0);
+  }, 0);
+}
+// "Boş km": gaps not covered by any trip — day-start→first pickup, between
+// consecutive trips (if the driver typed a higher pickup km than the last
+// suggested/dropoff km), and last dropoff→day-end.
+function entryBosKm(e) {
+  const list = e.trips || [];
+  let bos = 0;
+  let prevKm = (e.dayStartKm != null) ? e.dayStartKm : null;
+  for (const t of list) {
+    if (prevKm != null && t.pickupKm > prevKm) bos += t.pickupKm - prevKm;
+    prevKm = t.dropoffKm;
+  }
+  if (e.dayEndKm != null && prevKm != null && e.dayEndKm > prevKm) bos += e.dayEndKm - prevKm;
+  return bos;
+}
+function entryTotalKm(e) {
+  return entryDoluKm(e) + entryBosKm(e);
+}
+
+function updateBosKmPreview() {
+  const preview = document.getElementById('bos-km-preview');
+  const startKm = parseFloat(document.getElementById('f-daystart-km').value);
+  const endKm = parseFloat(document.getElementById('f-dayend-km').value);
+  const fakeEntry = {
+    dayStartKm: isNaN(startKm) ? null : startKm,
+    dayEndKm: isNaN(endKm) ? null : endKm,
+    trips: trips.map(t => ({ pickupKm: parseFloat(t.pickupKm), dropoffKm: parseFloat(t.dropoffKm) }))
+                .filter(t => !isNaN(t.pickupKm))
+  };
+  const bos = entryBosKm(fakeEntry);
+  preview.textContent = bos > 0 ? `${t('bosKmPreview')}: ${bos.toFixed(1)} km` : '';
+}
+document.getElementById('f-daystart-km').addEventListener('input', updateBosKmPreview);
+document.getElementById('f-dayend-km').addEventListener('input', updateBosKmPreview);
+
+// ---- Summary ----
+let currentPeriod = 'week';
+document.querySelectorAll('.period-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentPeriod = tab.dataset.period;
+    renderSummary();
+  });
+});
+
+function filterByPeriod(period) {
+  const now = new Date();
+  return entries.filter(e => {
+    const d = new Date(e.date);
+    if (period === 'all') return true;
+    if (period === 'month') {
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }
+    if (period === 'week') {
+      const startOfWeek = new Date(now);
+      const day = (now.getDay() + 6) % 7;
+      startOfWeek.setDate(now.getDate() - day);
+      startOfWeek.setHours(0,0,0,0);
+      return d >= startOfWeek;
+    }
+    return true;
+  });
+}
+
+function renderSummary() {
+  const filtered = filterByPeriod(currentPeriod);
+  const hours = filtered.reduce((s,e) => s + e.hours, 0);
+  const customers = filtered.reduce((s,e) => s + entryCustomerCount(e), 0);
+  const doluKm = filtered.reduce((s,e) => s + entryDoluKm(e), 0);
+  const bosKm = filtered.reduce((s,e) => s + entryBosKm(e), 0);
+  const km = filtered.reduce((s,e) => s + entryTotalKm(e), 0);
+  const income = filtered.reduce((s,e) => s + entryIncome(e), 0);
+  const expense = filtered.reduce((s,e) => s + entryExpenseTotal(e), 0);
+  const net = income - expense;
+
+  document.getElementById('s-hours').textContent = hours.toFixed(1);
+  document.getElementById('s-customers').textContent = customers;
+  document.getElementById('s-km-dolu').textContent = doluKm.toFixed(0);
+  document.getElementById('s-km-bos').textContent = bosKm.toFixed(0);
+  document.getElementById('s-km').textContent = km.toFixed(0);
+  document.getElementById('s-days').textContent = filtered.length;
+  document.getElementById('s-income').textContent = '₺' + income.toFixed(0);
+  document.getElementById('s-expense').textContent = '₺' + expense.toFixed(0);
+  const netEl = document.getElementById('s-net');
+  netEl.textContent = '₺' + net.toFixed(0);
+  netEl.className = 'value ' + (net >= 0 ? 'green' : 'red');
+}
+
+// ---- History ----
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (entries.length === 0) {
+    list.innerHTML = `<div class="empty">${t('emptyHistory')}</div>`;
+    return;
+  }
+  const sorted = [...entries].sort((a,b) => new Date(b.date) - new Date(a.date));
+  list.innerHTML = '';
+  sorted.forEach(e => {
+    const exp = entryExpenseTotal(e);
+    const net = entryIncome(e) - exp;
+    const doluKm = entryDoluKm(e);
+    const bosKm = entryBosKm(e);
+    const totalKm = entryTotalKm(e);
+    const cust = entryCustomerCount(e);
+    const div = document.createElement('div');
+    div.className = 'entry';
+    let tripsHtml = '';
+    if (e.trips && e.trips.length) {
+      tripsHtml = '<div class="trip-mini">' + e.trips.map((tr, i) => {
+        const times = (tr.pickupTime || tr.dropoffTime)
+          ? ` · ${formatTime(tr.pickupTime ? new Date(tr.pickupTime) : null)}–${formatTime(tr.dropoffTime ? new Date(tr.dropoffTime) : null)}`
+          : '';
+        const pay = tr.payment ? ` · ₺${parseFloat(tr.payment).toFixed(0)}` : '';
+        return `<div>${i+1}. ${tr.pickupLoc || '?'} (${tr.pickupKm}km) → ${tr.dropoffLoc || '?'} (${tr.dropoffKm}km)${times}${pay}</div>`;
+      }).join('');
+      if (bosKm > 0) {
+        tripsHtml += `<div>${t('bosKmHistory')}: ${bosKm.toFixed(1)} km</div>`;
+      }
+      tripsHtml += '</div>';
+    }
+    div.innerHTML = `
+      <div class="entry-top">
+        <div>
+          <div class="date">${formatDate(e.date)}</div>
+          <div class="meta">${e.hours} ${t('hUnit')} · ${cust} ${t('custShort')} · ${doluKm.toFixed(0)} ${t('doluShort')} + ${bosKm.toFixed(0)} ${t('bosShort')} = ${totalKm.toFixed(0)} km</div>
+        </div>
+        <div class="right">
+          <div class="net ${net>=0?'green':'red'}">₺${net.toFixed(0)}</div>
+          <button class="del" data-id="${e.id}">${t('delBtn')}</button>
+        </div>
+      </div>
+      ${tripsHtml}
+    `;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.del').forEach(btn => btn.addEventListener('click', e => {
+    if (confirm(t('confirmDelete'))) {
+      entries = entries.filter(en => en.id != e.target.dataset.id);
+      saveToStorage();
+      renderHistory();
+    }
+  }));
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString(t('locale'), { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+// init
+applyTranslations();
+</script>
+
+</body>
+</html>
